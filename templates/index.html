@@ -14,7 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
-<body>
+<body data-username="{{ username or 'User' }}">
 <div class="app-shell">
 
   <!-- ============ SIDEBAR ============ -->
@@ -22,21 +22,22 @@
     <div class="sidebar-top">
       <div class="brand">
         <div class="brand-mark small"><span class="brand-mark-core"></span></div>
-        <span class="brand-name">Nexa<b>Mind</b></span>
+        <span class="brand-name">Nexa<b>Mind</b><small>AI Assistant</small></span>
       </div>
-      <button class="icon-btn" id="collapseSidebarBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
+      <button class="icon-btn sidebar-toggle-btn" id="collapseSidebarBtn" data-tooltip="Collapse sidebar" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 5h16v2H4zm0 6h16v2H4zm0 6h10v2H4z"/></svg>
       </button>
     </div>
 
-    <button class="new-chat-btn" id="newChatBtn">
+    <button class="new-chat-btn rail-control" id="newChatBtn" data-tooltip="New conversation" aria-label="New conversation">
       <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
-      New conversation
+      <span class="control-label">New conversation</span><kbd>Ctrl N</kbd>
     </button>
 
-    <div class="sidebar-search">
+    <div class="sidebar-search rail-control" id="sidebarSearch" data-tooltip="Search conversations" title="Search conversations" role="search" tabindex="0" aria-label="Search conversations">
       <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14"/></svg>
       <input type="text" id="searchInput" placeholder="Search conversations">
+      <button class="search-clear" id="searchClearBtn" title="Clear search" aria-label="Clear search" hidden>×</button>
     </div>
 
     <nav class="conversation-list" id="conversationList" aria-label="Conversation history"></nav>
@@ -44,24 +45,27 @@
     <div class="sidebar-tools">
       <p class="sidebar-label">Quick tools</p>
       <div class="tool-chip-row" id="sidebarTools">
-        <button class="tool-chip" data-tool="explain">🧭 Explain</button>
-        <button class="tool-chip" data-tool="summarize">🗒️ Summarize</button>
-        <button class="tool-chip" data-tool="rewrite">✍️ Rewrite</button>
-        <button class="tool-chip" data-tool="ideas">💡 Ideas</button>
-        <button class="tool-chip" data-tool="code">💻 Code</button>
-        <button class="tool-chip" data-tool="debug">🐞 Debug</button>
-        <button class="tool-chip" data-tool="study">📚 Study</button>
+        <button class="tool-chip rail-control" data-tool="explain" data-tooltip="Explain" title="Explain a topic clearly" aria-label="Explain"><span class="tool-icon">🧭</span><span>Explain</span></button>
+        <button class="tool-chip rail-control" data-tool="summarize" data-tooltip="Summarize" title="Condense text into key points" aria-label="Summarize"><span class="tool-icon">🗒️</span><span>Summarize</span></button>
+        <button class="tool-chip rail-control" data-tool="rewrite" data-tooltip="Rewrite" title="Improve clarity and tone" aria-label="Rewrite"><span class="tool-icon">✍️</span><span>Rewrite</span></button>
+        <button class="tool-chip rail-control" data-tool="ideas" data-tooltip="Ideas" title="Generate creative ideas" aria-label="Ideas"><span class="tool-icon">💡</span><span>Ideas</span></button>
+        <button class="tool-chip rail-control" data-tool="code" data-tooltip="Code" title="Generate or explain code" aria-label="Code"><span class="tool-icon">💻</span><span>Code</span></button>
+        <button class="tool-chip rail-control" data-tool="debug" data-tooltip="Debug" title="Find and fix coding problems" aria-label="Debug"><span class="tool-icon">🐞</span><span>Debug</span></button>
+        <button class="tool-chip rail-control" data-tool="study" data-tooltip="Study" title="Learn a topic step by step" aria-label="Study"><span class="tool-icon">📚</span><span>Study</span></button>
       </div>
     </div>
 
     <div class="sidebar-bottom">
-      <button class="icon-text-btn" id="themeToggleBtn">
+      <button class="icon-text-btn rail-control" id="themeToggleBtn" data-tooltip="Light mode" aria-label="Toggle theme">
         <svg id="themeIcon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1"/></svg>
-        <span id="themeLabel">Light mode</span>
+        <span class="control-label" id="themeLabel">Light mode</span>
       </button>
-      <div class="user-pill">
-        <span class="user-avatar">{{ username[:1]|upper if username else 'U' }}</span>
+      <div class="user-pill rail-control" data-tooltip="Profile">
+        <button class="user-avatar profile-trigger" id="profileBtn" type="button" aria-label="Open profile">{{ username[:1]|upper if username else 'U' }}</button>
         <span class="user-name">{{ username or 'User' }}</span>
+        <button class="icon-btn user-settings" id="settingsBtn" title="Settings" aria-label="Open settings">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M19.43 12.98c.04-.32.07-.65-.07-.98s.03-.66.07-.98l2.11-1.65-2-3.46-2.49 1a7.35 7.35 0 0 0-1.69-.98L15 3h-4l-.37 2.93c-.6.24-1.16.57-1.69.98l-2.49-1-2 3.46 2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65 2 3.46 2.49-1c.52.4 1.09.74 1.69.98L11 21h4l.37-2.93c.6-.24 1.16-.57 1.69-.98l2.49 1 2-3.46zM13 15.5A3.5 3.5 0 1 1 13 8a3.5 3.5 0 0 1 0 7.5z"/></svg>
+        </button>
         <a href="{{ url_for('logout') }}" class="logout-link" title="Log out">
           <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3H9c-1.1 0-2 .9-2 2v4h2V5h11v14H9v-4H7v4c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2"/></svg>
         </a>
@@ -69,7 +73,7 @@
     </div>
   </aside>
 
-  <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Open sidebar">
+  <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
     <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z"/></svg>
   </button>
   <div class="sidebar-scrim" id="sidebarScrim"></div>
@@ -78,9 +82,10 @@
   <main class="main-panel">
 
     <header class="chat-header">
+      <button class="mobile-back-btn" id="mobileBackBtn" aria-label="Back to conversations">← <span>Conversations</span></button>
       <div class="chat-header-title">
         <span class="pulse-dot"></span>
-        <h2 id="conversationTitle">New conversation</h2>
+        <div><h2 id="conversationTitle">New conversation</h2><span class="model-badge">Live AI</span></div>
       </div>
       <div class="chat-header-actions">
         <button class="icon-btn" id="exportBtn" title="Export conversation" aria-label="Export conversation">
@@ -89,6 +94,8 @@
         <button class="icon-btn" id="clearBtn" title="Clear conversation" aria-label="Clear conversation">
           <svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>
         </button>
+        <button class="icon-btn overflow-btn" id="overflowBtn" title="More actions" aria-label="More actions">•••</button>
+        <div class="overflow-menu" id="overflowMenu" hidden></div>
       </div>
     </header>
 
@@ -144,12 +151,14 @@
       <div class="composer-box">
         <textarea id="messageInput" placeholder="Ask NexaMind anything..." rows="1" maxlength="8000"></textarea>
         <div class="composer-actions">
+          <div class="char-progress" id="charProgress" aria-label="Character limit"><span></span></div>
           <span class="char-counter" id="charCounter">0 / 8000</span>
           <button class="send-btn" id="sendBtn" aria-label="Send message">
             <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
           </button>
         </div>
       </div>
+      <div class="command-popover" id="commandPopover" hidden></div>
       <p class="composer-hint">Enter to send &middot; Shift+Enter for a new line &middot; NexaMind can make mistakes, so double-check important info.</p>
     </footer>
   </main>
@@ -171,10 +180,23 @@
         <button class="msg-action-btn regen-btn" title="Regenerate response" aria-label="Regenerate response" hidden>
           <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08a5.99 5.99 0 0 1-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L14 11h7V4z"/></svg>
         </button>
+        <button class="msg-action-btn edit-btn" title="Edit message" aria-label="Edit message" hidden>✎</button>
+        <button class="msg-action-btn helpful-btn" title="Was this helpful?" aria-label="Was this helpful?">♡</button>
       </div>
     </div>
   </div>
 </template>
+
+<div class="toast-region" id="toastRegion" aria-live="polite"></div>
+<div class="confirm-dialog" id="confirmDialog" hidden>
+  <div class="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <h3 id="confirmTitle">Are you sure?</h3><p id="confirmMessage"></p>
+    <div class="confirm-actions"><button class="btn-ghost" id="confirmCancel">Cancel</button><button class="btn-danger" id="confirmAccept">Delete</button></div>
+  </div>
+</div>
+<div class="settings-dialog" id="settingsDialog" hidden>
+  <div class="confirm-card" role="dialog" aria-modal="true"><h3>Settings</h3><p>Your workspace preferences are stored in this browser.</p><button class="btn-ghost" id="settingsClose">Close</button></div>
+</div>
 
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

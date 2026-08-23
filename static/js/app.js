@@ -16,6 +16,7 @@
   const conversationList = document.getElementById("conversationList");
   const newChatBtn = document.getElementById("newChatBtn");
   const searchInput = document.getElementById("searchInput");
+  const searchClearBtn = document.getElementById("searchClearBtn");
 
   const welcomeScreen = document.getElementById("welcomeScreen");
   const chatStream = document.getElementById("chatStream");
@@ -35,6 +36,12 @@
   const clearBtn = document.getElementById("clearBtn");
   const themeToggleBtn = document.getElementById("themeToggleBtn");
   const themeLabel = document.getElementById("themeLabel");
+  const commandPopover = document.getElementById("commandPopover");
+  const charProgress = document.getElementById("charProgress");
+  const toastRegion = document.getElementById("toastRegion");
+  const confirmDialog = document.getElementById("confirmDialog");
+  const settingsDialog = document.getElementById("settingsDialog");
+  const username = document.body.dataset.username || "User";
 
   const TOOL_NAMES = {
     explain: "Explain", summarize: "Summarize", rewrite: "Rewrite",
@@ -63,6 +70,7 @@
   function setTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     themeLabel.textContent = theme === "dark" ? "Light mode" : "Dark mode";
+    themeToggleBtn.dataset.tooltip = theme === "dark" ? "Light mode" : "Dark mode";
     localStorage_safe_set("nexamind-theme", theme);
   }
   themeToggleBtn.addEventListener("click", () => {
@@ -77,16 +85,45 @@
   // =========================================================================
   // Sidebar (mobile + collapse)
   // =========================================================================
+  function isMobileLayout() { return window.matchMedia("(max-width: 920px)").matches; }
+  function setSidebarCollapsed(collapsed) {
+    document.querySelector(".app-shell").classList.toggle("is-collapsed", collapsed);
+    collapseSidebarBtn.setAttribute("aria-expanded", String(!collapsed));
+    collapseSidebarBtn.dataset.tooltip = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    collapseSidebarBtn.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    localStorage_safe_set("nexamind-sidebar-collapsed", String(collapsed));
+  }
+  function toggleSidebar() {
+    if (isMobileLayout()) {
+      const isOpen = sidebar.classList.toggle("is-open");
+      sidebarScrim.classList.toggle("is-open", isOpen);
+      mobileSidebarToggle.setAttribute("aria-expanded", String(isOpen));
+      document.body.classList.toggle("drawer-open", isOpen);
+      return;
+    }
+    setSidebarCollapsed(!document.querySelector(".app-shell").classList.contains("is-collapsed"));
+  }
+  setSidebarCollapsed(localStorage_safe_get("nexamind-sidebar-collapsed") === "true");
   mobileSidebarToggle.addEventListener("click", () => {
-    sidebar.classList.add("is-open");
-    sidebarScrim.classList.add("is-open");
+    toggleSidebar();
   });
   sidebarScrim.addEventListener("click", closeMobileSidebar);
   function closeMobileSidebar() {
     sidebar.classList.remove("is-open");
     sidebarScrim.classList.remove("is-open");
+    mobileSidebarToggle.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("drawer-open");
   }
-  collapseSidebarBtn.addEventListener("click", closeMobileSidebar);
+  collapseSidebarBtn.addEventListener("click", toggleSidebar);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      if (sidebar.classList.contains("is-open")) closeMobileSidebar();
+      document.getElementById("overflowMenu").hidden = true;
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (!isMobileLayout()) closeMobileSidebar();
+  });
 
   // =========================================================================
   // Conversations
@@ -109,22 +146,47 @@
       return;
     }
     conversationList.innerHTML = "";
-    state.conversations.forEach((c) => {
+    const pinned = state.conversations.filter((c) => isPinned(c.id));
+    if (pinned.length) appendConversationGroup("Pinned", pinned);
+    const groups = { Today: [], Yesterday: [], "Previous 7 days": [], Older: [] };
+    state.conversations.filter((c) => !isPinned(c.id)).forEach((c) => groups[recencyGroup(c.updated_at || c.created_at)].push(c));
+    Object.entries(groups).forEach(([label, items]) => { if (items.length) appendConversationGroup(label, items); });
+  }
+
+  function isPinned(id) { return localStorage_safe_get("nexamind-pins")?.split(",").includes(String(id)); }
+  function togglePinned(id) {
+    const pins = new Set((localStorage_safe_get("nexamind-pins") || "").split(",").filter(Boolean));
+    pins.has(String(id)) ? pins.delete(String(id)) : pins.add(String(id));
+    localStorage_safe_set("nexamind-pins", [...pins].join(","));
+    renderConversationList();
+  }
+  function recencyGroup(iso) {
+    const date = new Date(iso || 0); const now = new Date();
+    const day = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+    const delta = Math.floor((day(now) - day(date)) / 86400000);
+    return delta <= 0 ? "Today" : delta === 1 ? "Yesterday" : delta <= 7 ? "Previous 7 days" : "Older";
+  }
+  function appendConversationGroup(label, conversations) {
+    const heading = document.createElement("div"); heading.className = "conversation-group-label"; heading.textContent = label;
+    conversationList.appendChild(heading);
+    conversations.forEach((c) => {
       const item = document.createElement("div");
       item.className = "conversation-item" + (c.id === state.conversationId ? " is-active" : "");
       item.innerHTML = `
         <span class="conv-title">${escapeHtml(c.title)}</span>
+        <button class="conv-pin ${isPinned(c.id) ? "is-pinned" : ""}" title="${isPinned(c.id) ? "Unpin" : "Pin conversation"}" aria-label="${isPinned(c.id) ? "Unpin" : "Pin conversation"}">★</button>
         <button class="conv-delete" title="Delete conversation">
           <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>
         </button>`;
       item.addEventListener("click", (e) => {
-        if (e.target.closest(".conv-delete")) return;
+        if (e.target.closest(".conv-delete,.conv-pin")) return;
         openConversation(c.id, c.title);
         closeMobileSidebar();
       });
+      item.querySelector(".conv-pin").addEventListener("click", (e) => { e.stopPropagation(); togglePinned(c.id); });
       item.querySelector(".conv-delete").addEventListener("click", async (e) => {
         e.stopPropagation();
-        if (!confirm(`Delete "${c.title}"? This can't be undone.`)) return;
+        if (!await askConfirm(`Delete "${c.title}"? This can't be undone.`)) return;
         await fetch(`/api/conversations/${c.id}`, { method: "DELETE" });
         if (state.conversationId === c.id) startNewConversation();
         loadConversations(searchInput.value.trim());
@@ -166,8 +228,26 @@
 
   let searchDebounce;
   searchInput.addEventListener("input", () => {
+    searchClearBtn.hidden = !searchInput.value;
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => loadConversations(searchInput.value.trim()), 300);
+  });
+  searchClearBtn.addEventListener("click", () => { searchInput.value = ""; searchClearBtn.hidden = true; loadConversations(); searchInput.focus(); });
+  function focusConversationSearch() {
+    if (!isMobileLayout() && document.querySelector(".app-shell").classList.contains("is-collapsed")) setSidebarCollapsed(false);
+    searchInput.focus();
+  }
+  document.getElementById("sidebarSearch").addEventListener("click", focusConversationSearch);
+  document.getElementById("sidebarSearch").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); focusConversationSearch(); }
+  });
+  const userPill = document.querySelector(".user-pill");
+  userPill.addEventListener("click", (event) => {
+    if (!event.target.closest("button,a")) settingsDialog.hidden = false;
+  });
+  document.getElementById("profileBtn").addEventListener("click", () => { settingsDialog.hidden = false; });
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "n") { event.preventDefault(); startNewConversation(); }
   });
 
   // =========================================================================
@@ -232,9 +312,17 @@
   function updateCharCounter() {
     const len = messageInput.value.length;
     charCounter.textContent = `${len} / 8000`;
+    const ratio = Math.min(len / 8000, 1);
+    charProgress.hidden = ratio < 0.8;
+    charProgress.style.setProperty("--progress", `${ratio * 100}%`);
     sendBtn.disabled = state.isSending || len === 0 || len > 8000;
   }
-  messageInput.addEventListener("input", () => { autoGrow(); updateCharCounter(); });
+  messageInput.addEventListener("input", () => {
+    autoGrow(); updateCharCounter();
+    const startsCommand = messageInput.value === "/" || (messageInput.value.startsWith("/") && !messageInput.value.includes(" "));
+    commandPopover.hidden = !startsCommand;
+    if (startsCommand) renderCommandPopover(messageInput.value.slice(1));
+  });
   messageInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -242,6 +330,14 @@
     }
   });
   sendBtn.addEventListener("click", sendMessage);
+
+  function renderCommandPopover(filter) {
+    const tools = Object.entries(TOOL_NAMES).filter(([key, name]) => `${key} ${name}`.toLowerCase().includes(filter.toLowerCase()));
+    commandPopover.innerHTML = tools.map(([key, name]) => `<button data-tool="${key}"><span>${name}</span><kbd>/${key}</kbd></button>`).join("");
+    commandPopover.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
+      setActiveTool(button.dataset.tool); messageInput.value = ""; commandPopover.hidden = true; updateCharCounter(); messageInput.focus();
+    }));
+  }
 
   // =========================================================================
   // Sending messages / rendering
@@ -263,6 +359,8 @@
       const pre = block.parentElement;
       const wrap = document.createElement("div");
       wrap.className = "code-block-wrap";
+      const languageClass = [...block.classList].find((name) => name.startsWith("language-"));
+      wrap.dataset.language = languageClass ? languageClass.slice(9) : "code";
       pre.parentNode.insertBefore(wrap, pre);
       wrap.appendChild(pre);
       const copyBtn = document.createElement("button");
@@ -293,6 +391,17 @@
     if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   }
+  function relativeTime(iso) {
+    const date = new Date(iso || 0); const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "just now"; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`;
+  }
+
+  function avatarInitial() { return username.trim().slice(0, 1).toUpperCase() || "U"; }
+  function avatarColor() {
+    let hash = 0; for (const character of username) hash = character.charCodeAt(0) + ((hash << 5) - hash);
+    return ["#F0B15C", "#4FD6C0", "#E78A9B", "#8BA7F0"][Math.abs(hash) % 4];
+  }
 
   async function copyText(text) {
     try {
@@ -319,7 +428,10 @@
     const messageEl = node.querySelector(".message");
     messageEl.classList.add(role === "user" ? "role-user" : "role-assistant");
     node.querySelector(".message-sender").textContent = role === "user" ? "You" : "NexaMind";
-    node.querySelector(".message-time").textContent = formatTime(createdAt);
+    const timeEl = node.querySelector(".message-time"); timeEl.textContent = formatTime(createdAt); timeEl.title = relativeTime(createdAt);
+    const avatar = node.querySelector(".message-avatar");
+    avatar.textContent = role === "user" ? avatarInitial() : "";
+    if (role === "user") avatar.style.background = avatarColor();
     node.querySelector(".message-content").innerHTML = renderMarkdown(content);
 
     if (content) {
@@ -336,6 +448,16 @@
         });
       });
     }
+
+    const helpfulBtn = node.querySelector(".helpful-btn");
+    if (role === "assistant") {
+      helpfulBtn.addEventListener("click", () => { helpfulBtn.classList.toggle("is-selected"); helpfulBtn.textContent = helpfulBtn.classList.contains("is-selected") ? "♥" : "♡"; });
+    } else { helpfulBtn.remove(); }
+    const editBtn = node.querySelector(".edit-btn");
+    if (role === "user") {
+      editBtn.hidden = false;
+      editBtn.addEventListener("click", () => { messageInput.value = content; updateCharCounter(); autoGrow(); messageInput.focus(); });
+    } else { editBtn.remove(); }
 
     const regenBtn = node.querySelector(".regen-btn");
     if (role === "assistant" && allowRegen) {
@@ -355,7 +477,7 @@
       <div class="message-avatar"></div>
       <div class="message-body">
         <div class="message-meta"><span class="message-sender">NexaMind</span></div>
-        <div class="message-content"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+        <div class="message-content"><div class="typing-indicator"></div></div>
       </div>`;
     chatStream.appendChild(el);
     scrollToBottom();
@@ -422,7 +544,8 @@
   function createStreamingBubble() {
     const el = appendMessage("assistant", "", new Date().toISOString(), { allowRegen: false });
     const contentEl = el.querySelector(".message-content");
-    contentEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    contentEl.innerHTML = `<div class="typing-indicator"></div>`;
+    sendBtn.classList.add("is-streaming");
 
     let rawText = "";
     let hasContent = false;
@@ -466,6 +589,7 @@
         });
       },
       fail() {
+        sendBtn.classList.remove("is-streaming");
         el.remove();
       },
     };
@@ -506,8 +630,6 @@
       }
 
       let streamError = null;
-      let demoMode = false;
-
       await consumeSSE(res, {
         meta: (data) => {
           state.conversationId = data.conversation_id;
@@ -515,7 +637,7 @@
         },
         chunk: (data) => bubble.appendChunk(data.text),
         error: (data) => { streamError = data.error; },
-        done: (data) => { demoMode = data.demo_mode; },
+        done: () => {},
       });
 
       if (streamError) {
@@ -525,15 +647,13 @@
       }
 
       bubble.finalize(true);
-      if (demoMode) {
-        appendSystemNote("Running in demo mode — add an API key in .env for live AI responses.");
-      }
       scrollToBottom();
       loadConversations(searchInput.value.trim());
     } catch (err) {
       bubble.fail();
       appendSystemNote("We couldn't reach the server. Check your connection and try again.", true);
     } finally {
+      sendBtn.classList.remove("is-streaming");
       state.isSending = false;
       updateCharCounter();
     }
@@ -594,7 +714,7 @@
   // =========================================================================
   exportBtn.addEventListener("click", () => {
     if (!state.conversationId) {
-      alert("Start a conversation first, then you can export it.");
+      toast("Start a conversation first, then you can export it.", true);
       return;
     }
     const messages = [...chatStream.querySelectorAll(".message")].map((m) => {
@@ -615,10 +735,30 @@
       startNewConversation();
       return;
     }
-    if (!confirm("Clear this conversation? This deletes it permanently.")) return;
+    if (!await askConfirm("Clear this conversation? This deletes it permanently.")) return;
     await fetch(`/api/conversations/${state.conversationId}`, { method: "DELETE" });
     startNewConversation();
     loadConversations();
+  });
+
+  function toast(message, isError = false) {
+    const item = document.createElement("div"); item.className = `toast ${isError ? "is-error" : ""}`; item.textContent = message;
+    toastRegion.appendChild(item); setTimeout(() => item.remove(), 3200);
+  }
+  function askConfirm(message) {
+    return new Promise((resolve) => {
+      document.getElementById("confirmMessage").textContent = message; confirmDialog.hidden = false;
+      const finish = (result) => { confirmDialog.hidden = true; cancel.removeEventListener("click", onCancel); accept.removeEventListener("click", onAccept); resolve(result); };
+      const cancel = document.getElementById("confirmCancel"); const accept = document.getElementById("confirmAccept");
+      const onCancel = () => finish(false); const onAccept = () => finish(true); cancel.addEventListener("click", onCancel); accept.addEventListener("click", onAccept);
+    });
+  }
+  document.getElementById("settingsBtn").addEventListener("click", () => { settingsDialog.hidden = false; });
+  document.getElementById("settingsClose").addEventListener("click", () => { settingsDialog.hidden = true; });
+  document.getElementById("mobileBackBtn").addEventListener("click", () => { sidebar.classList.add("is-open"); sidebarScrim.classList.add("is-open"); });
+  document.getElementById("overflowBtn").addEventListener("click", () => {
+    const menu = document.getElementById("overflowMenu"); menu.innerHTML = `<button>Export conversation</button><button>Clear conversation</button>`; menu.hidden = !menu.hidden;
+    menu.querySelectorAll("button")[0].onclick = () => exportBtn.click(); menu.querySelectorAll("button")[1].onclick = () => clearBtn.click();
   });
 
   // =========================================================================

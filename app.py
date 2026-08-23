@@ -11,7 +11,6 @@ import json
 import os
 import re
 import sqlite3
-import time
 import uuid
 from datetime import datetime, timezone
 
@@ -361,64 +360,27 @@ def stream_openrouter(system_prompt, history):
             yield delta
 
 
-def stream_demo(tool, latest_message):
-    """Simulate token-by-token streaming for demo mode (no API key configured)."""
-    text = demo_response(tool, latest_message)
-    for word in text.split(" "):
-        yield word + " "
-        time.sleep(0.02)
-
-
-def demo_response(tool, latest_message):
-    """
-    Friendly, clearly-labeled fallback used when no AI API key is configured,
-    so the app remains demonstrable out of the box. Never pretends to be a
-    live model response.
-    """
-    label = TOOL_PROMPTS.get(tool, "").split(".")[0] if tool else ""
-    intro = "**NexaMind demo mode** — no AI API key is configured yet, so here's a placeholder reply.\n\n"
-    if tool == "code":
-        body = (
-            "```python\n"
-            "def greet(name):\n"
-            "    \"\"\"Return a friendly greeting.\"\"\"\n"
-            "    return f\"Hello, {name}! This is a demo response.\"\n"
-            "```\n\nOnce you add `GEMINI_API_KEY` or `OPENROUTER_API_KEY` to your `.env` file, "
-            "NexaMind will generate real code for requests like yours."
-        )
-    else:
-        body = (
-            f"You asked: _{latest_message.strip()[:200]}_\n\n"
-            "To get real, intelligent answers, add a valid API key to your `.env` file "
-            "(`GEMINI_API_KEY` or `OPENROUTER_API_KEY`) and restart the server. "
-            "Everything else — conversations, history, quick tools — is already fully working."
-        )
-    return intro + body
-
-
 def get_ai_response(tool, history):
     """
     history: list of {"role": "user"|"assistant", "content": str}, oldest first.
-    Returns (text, used_demo_mode: bool, error_message: str|None)
+    Returns (text, error_message: str|None)
     """
     system_prompt = build_system_prompt(tool)
     provider = call_gemini if AI_PROVIDER == "gemini" else call_openrouter
 
     try:
         text = provider(system_prompt, history)
-        return text, False, None
+        return text, None
     except AIError as e:
-        if str(e) == "missing_key":
-            latest = history[-1]["content"] if history else ""
-            return demo_response(tool, latest), True, None
         error_messages = {
+            "missing_key": "No AI provider API key is configured. Add one to your .env file and restart NexaMind.",
             "timeout": "The AI service took too long to respond. Please try again.",
             "network": "We couldn't reach the AI service. Check your internet connection and try again.",
             "service_down": "The AI service is temporarily unavailable. Please try again shortly.",
             "rate_limit": "The AI service is temporarily rate-limited. Please try again in a moment.",
             "api_error": "The AI service returned an unexpected error. Please try again.",
         }
-        return None, False, error_messages.get(str(e), "Something went wrong. Please try again.")
+        return None, error_messages.get(str(e), "Something went wrong. Please try again.")
 
 
 # ---------------------------------------------------------------------------
@@ -636,7 +598,7 @@ def chat():
         ).fetchall()
         history = [{"role": r["role"], "content": r["content"]} for r in history_rows]
 
-        reply, used_demo, error = get_ai_response(tool, history)
+        reply, error = get_ai_response(tool, history)
 
         if error:
             return jsonify({"error": error, "conversation_id": conversation_id}), 502
@@ -658,7 +620,6 @@ def chat():
                 "reply": reply,
                 "conversation_id": conversation_id,
                 "title": convo["title"],
-                "demo_mode": used_demo,
             }
         )
 
@@ -725,6 +686,7 @@ def chat_stream():
 
     system_prompt = build_system_prompt(tool)
     error_messages = {
+        "missing_key": "No AI provider API key is configured. Add one to your .env file and restart NexaMind.",
         "timeout": "The AI service took too long to respond. Please try again.",
         "network": "We couldn't reach the AI service. Check your internet connection and try again.",
         "service_down": "The AI service is temporarily unavailable. Please try again shortly.",
@@ -734,8 +696,6 @@ def chat_stream():
 
     def generate():
         chunks = []
-        used_demo = False
-
         try:
             yield sse_pack("meta", {"conversation_id": conversation_id, "title": title})
 
@@ -748,18 +708,11 @@ def chat_stream():
                     yield sse_pack("chunk", {"text": chunk})
 
             except AIError as e:
-                if str(e) == "missing_key":
-                    used_demo = True
-                    for chunk in stream_demo(tool, message):
-                        chunk = repair_mojibake(chunk)
-                        chunks.append(chunk)
-                        yield sse_pack("chunk", {"text": chunk})
-                else:
-                    yield sse_pack(
-                        "error",
-                        {"error": error_messages.get(str(e), "Something went wrong. Please try again.")},
-                    )
-                    return
+                yield sse_pack(
+                    "error",
+                    {"error": error_messages.get(str(e), "Something went wrong. Please try again.")},
+                )
+                return
 
             reply = "".join(chunks)
             try:
@@ -776,7 +729,7 @@ def chat_stream():
             except sqlite3.Error:
                 pass  # the reply already reached the browser; don't fail the stream over a save error
 
-            yield sse_pack("done", {"demo_mode": used_demo})
+            yield sse_pack("done", {})
 
         except GeneratorExit:
             raise
@@ -825,7 +778,7 @@ def regenerate():
     if not history:
         return jsonify({"error": "Nothing to regenerate yet."}), 400
 
-    reply, used_demo, error = get_ai_response(tool, history)
+    reply, error = get_ai_response(tool, history)
     if error:
         return jsonify({"error": error}), 502
     reply = repair_mojibake(reply)
@@ -837,7 +790,7 @@ def regenerate():
     db.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (now_iso(), conversation_id))
     db.commit()
 
-    return jsonify({"reply": reply, "demo_mode": used_demo})
+    return jsonify({"reply": reply})
 
 
 @app.route("/api/regenerate/stream", methods=["POST"])
@@ -879,6 +832,7 @@ def regenerate_stream():
     latest_user_message = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
     system_prompt = build_system_prompt(tool)
     error_messages = {
+        "missing_key": "No AI provider API key is configured. Add one to your .env file and restart NexaMind.",
         "timeout": "The AI service took too long to respond. Please try again.",
         "network": "We couldn't reach the AI service. Check your internet connection and try again.",
         "service_down": "The AI service is temporarily unavailable. Please try again shortly.",
@@ -888,7 +842,6 @@ def regenerate_stream():
 
     def generate():
         chunks = []
-        used_demo = False
         try:
             try:
                 provider_gen = stream_gemini(system_prompt, history) if AI_PROVIDER == "gemini" \
@@ -898,18 +851,11 @@ def regenerate_stream():
                     chunks.append(chunk)
                     yield sse_pack("chunk", {"text": chunk})
             except AIError as e:
-                if str(e) == "missing_key":
-                    used_demo = True
-                    for chunk in stream_demo(tool, latest_user_message):
-                        chunk = repair_mojibake(chunk)
-                        chunks.append(chunk)
-                        yield sse_pack("chunk", {"text": chunk})
-                else:
-                    yield sse_pack(
-                        "error",
-                        {"error": error_messages.get(str(e), "Something went wrong. Please try again.")},
-                    )
-                    return
+                yield sse_pack(
+                    "error",
+                    {"error": error_messages.get(str(e), "Something went wrong. Please try again.")},
+                )
+                return
 
             reply = "".join(chunks)
             try:
@@ -926,7 +872,7 @@ def regenerate_stream():
             except sqlite3.Error:
                 pass
 
-            yield sse_pack("done", {"demo_mode": used_demo})
+            yield sse_pack("done", {})
 
         except GeneratorExit:
             raise
