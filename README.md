@@ -1,238 +1,742 @@
 <div align="center">
 
-<img src="static/images/logo-256.png" width="88" alt="NexaMind logo">
+<img src="static/images/logo-256.png" width="96" alt="NexaMind Logo">
 
 # NexaMind
 
-**Think smarter. Ask anything. Get more done.**
+### Think smarter. Ask anything. Build anything.
 
-An original AI assistant web app built with Python and Flask — a real chat product,
-not a textbox wired to an API.
+**A full-stack AI assistance platform built with Python, Flask, JavaScript, and modern AI APIs.**
+
+NexaMind is designed to feel like a real AI product — with conversations, persistent history,
+streaming responses, Markdown rendering, code highlighting, quick AI tools, authentication,
+themes, and provider-independent AI integration.
+
+<br>
+
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![AI](https://img.shields.io/badge/AI-Gemini%20%7C%20OpenRouter-8E75B2?style=for-the-badge)
 
 </div>
 
 ---
 
-## Table of contents
+## ✨ What is NexaMind?
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech stack](#tech-stack)
-- [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [Environment variables](#environment-variables)
-- [API reference](#api-reference)
-- [How streaming works](#how-streaming-works)
-- [Deploying NexaMind](#deploying-nexamind)
-- [Security notes](#security-notes)
-- [Error handling](#error-handling)
-- [Design](#design)
-- [Presentation notes](#presentation-notes)
-- [Troubleshooting](#troubleshooting)
+NexaMind is a full-stack AI assistant web application built from the ground up using
+**Python and Flask**.
+
+Instead of being a simple textbox connected to an AI API, NexaMind provides the core
+features expected from a modern AI chat product:
+
+- 💬 Multi-turn AI conversations
+- ⚡ Real-time streaming responses
+- 🧠 Conversation memory and history
+- 🔎 Conversation search
+- 🛠️ Specialized AI tools
+- 📝 Markdown rendering
+- 💻 Syntax-highlighted code
+- 📋 One-click code copying
+- 🔄 Regenerate responses
+- 📤 Export conversations
+- 🌙 Dark mode
+- 👤 Authentication and guest access
+- 🛡️ Secure environment-based API configuration
+- 🔌 Gemini and OpenRouter provider support
+- 🧪 Demo mode when no API key is available
+
+The goal is to demonstrate how an AI-powered product can be designed, implemented,
+and deployed as a complete application rather than just an API experiment.
 
 ---
 
-## Overview
+# 🚀 Features
 
-NexaMind is a full-stack AI chat application: multi-turn conversations, persistent
-history, and a set of one-click AI tools (Explain, Summarize, Rewrite, Generate Ideas,
-Generate Code, Debug Code, Study Assistant), all served through a single Flask backend
-and a single AI pipeline. It's built to be demoed confidently — including with **no AI
-API key at all**, via a clearly labeled demo mode.
+## 💬 AI Chat
 
-## Features
+NexaMind supports natural multi-turn conversations.
 
-| Category | What's included |
+### Includes
+
+- Context-aware conversations
+- User and AI message separation
+- Streaming AI responses
+- Typing/thinking states
+- Automatic scrolling
+- Conversation titles
+- Regenerate responses
+- Copy responses
+- Long-message support
+- Empty-message validation
+
+---
+
+## ⚡ Quick AI Tools
+
+NexaMind includes specialized one-click AI workflows.
+
+| Tool | Purpose |
 |---|---|
-| **Chat** | Multi-turn context, word-by-word streaming replies, typing indicator, auto-scroll |
-| **History** | Searchable sidebar, auto-generated titles, delete, per-user isolation |
-| **Quick tools** | Explain · Summarize · Rewrite · Generate Ideas · Generate Code · Debug Code · Study Assistant — all through one endpoint |
-| **Message actions** | Copy, regenerate, export conversation, clear conversation |
-| **Content rendering** | Markdown formatting, syntax-highlighted code blocks, one-click code copy |
-| **UI** | Dark/light theme, responsive layout, collapsible mobile sidebar, smart welcome screen with suggestion cards |
-| **Auth** | Register, log in, or continue as guest — no setup required to try it |
-| **Resilience** | Friendly errors for missing keys, timeouts, network issues, and DB errors — never a raw traceback |
-| **Demo mode** | Fully functional and presentable with zero API keys configured |
+| 🔍 **Explain** | Explain complex topics in simple language |
+| 📝 **Summarize** | Convert long content into key points |
+| ✍️ **Rewrite** | Improve clarity, grammar, and tone |
+| 💡 **Ideas** | Generate creative project and product ideas |
+| 💻 **Code** | Generate programming solutions |
+| 🐞 **Debug** | Analyze code and identify possible problems |
+| 📚 **Study** | Create structured learning explanations |
 
-## Tech stack
+All tools use the same AI pipeline while changing the system prompt according to
+the selected task.
 
-| Layer | Technology |
-|---|---|
-| Backend | Python 3, Flask, SQLite |
-| Frontend | HTML5, CSS3, vanilla JavaScript (no framework, no build step) |
-| AI | Google Gemini API **or** OpenRouter API (switch with one env var) |
-| Rendering | marked.js (Markdown) + highlight.js (code) |
-| Production server | gunicorn (`gthread` workers, for SSE support) |
+This keeps the backend architecture simple and extensible.
 
-## Project structure
+---
+
+# 🧠 AI Architecture
+
+NexaMind separates the application from the AI provider.
 
 ```text
-nexamind/
-├── app.py                  # Flask app: routes, database, AI integration, streaming
-├── requirements.txt
-├── .env.example             # Copy to .env and fill in your own values
-├── Procfile                 # Process command for Render / Railway / Heroku-style hosts
-├── runtime.txt               # Pins the Python version for hosting platforms
-├── templates/
-│   ├── index.html           # Main chat application
-│   └── login.html           # Login / register / guest access
-├── static/
-│   ├── css/style.css        # NexaMind design system
-│   ├── js/app.js            # Front-end logic (chat, streaming, tools, theme, search)
-│   └── images/
-│       ├── logo.svg         # Brand mark (vector)
-│       ├── logo-*.png       # Brand mark (raster exports)
-│       └── favicon.ico      # Browser tab icon
+                    ┌───────────────────┐
+                    │     NexaMind      │
+                    │    Web Interface  │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │   Flask Backend   │
+                    │    app.py         │
+                    └─────────┬─────────┘
+                              │
+                     AI_PROVIDER
+                       /          \
+                      /            \
+                     ▼              ▼
+             ┌──────────────┐  ┌──────────────┐
+             │    Gemini    │  │  OpenRouter  │
+             │     API      │  │     API      │
+             └──────────────┘  └──────────────┘
+
+The provider can be changed through .env without modifying the application code.
+
+Example:
+
+AI_PROVIDER=gemini
+
+or:
+
+AI_PROVIDER=openrouter
+⚡ Real-Time Streaming
+
+One of NexaMind's main technical features is real-time AI response streaming.
+
+Instead of waiting for the entire AI response:
+
+User
+  │
+  ▼
+Request
+  │
+  ▼
+AI Provider
+  │
+  ├── Token 1 ──► Browser
+  ├── Token 2 ──► Browser
+  ├── Token 3 ──► Browser
+  ├── Token 4 ──► Browser
+  └── ...
+
+The backend uses Server-Sent Events (SSE) and the browser consumes the stream
+using the Fetch API and ReadableStream.
+
+This creates a much more natural AI-chat experience.
+
+Streaming endpoints
+POST /api/chat/stream
+POST /api/regenerate/stream
+
+The stream can send events such as:
+
+meta
+chunk
+done
+error
+
+The completed response is saved to the database after streaming finishes.
+
+📝 Markdown & Code Rendering
+
+NexaMind supports rich AI responses instead of displaying raw text.
+
+AI responses can contain:
+
+Bold text
+Italic text
+Headings
+Bullet lists
+Numbered lists
+Blockquotes
+Links
+Inline code
+Fenced code blocks
+Syntax highlighting
+
+Example:
+
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("NexaMind"))
+
+Code blocks include a convenient Copy action so users can copy generated code
+without manually selecting it.
+
+🗂️ Conversation Management
+
+Every conversation can be stored and accessed later.
+
+History features
+Automatic conversation creation
+Automatic conversation titles
+Search conversations
+Open previous conversations
+Delete conversations
+Per-user conversation isolation
+Persistent message storage
+
+Example:
+
+User
+ │
+ ├── Conversation 1
+ │     ├── Message
+ │     ├── AI response
+ │     └── Message
+ │
+ ├── Conversation 2
+ │     ├── Message
+ │     └── AI response
+ │
+ └── Conversation 3
+       └── ...
+👤 Authentication
+
+NexaMind includes a lightweight authentication system.
+
+Users can:
+
+Register
+Log in
+Continue as a guest
+Log out
+
+Passwords are hashed before being stored.
+
+The application also keeps conversations isolated between users.
+
+🎨 User Interface
+
+NexaMind was designed as a complete AI product rather than a basic Flask demo.
+
+UI features
+Responsive layout
+Sidebar navigation
+Conversation search
+Quick tool buttons
+Welcome screen
+Suggestion cards
+Message bubbles
+AI thinking/streaming state
+Copy controls
+Regenerate controls
+Dark mode
+Mobile-friendly sidebar
+Gradient brand identity
+Empty-state experience
+
+The visual identity uses a violet → teal signal gradient to represent the flow
+of information between the user, NexaMind, and the AI model.
+
+🧪 Demo Mode
+
+NexaMind can run even when no AI API key is configured.
+
+Instead of crashing, the application switches to a clearly labeled:
+
+NexaMind Demo Mode
+
+This makes the project easier to demonstrate during:
+
+College presentations
+Hackathons
+Portfolio reviews
+Local development
+UI demonstrations
+
+Demo mode also simulates streaming so the frontend can still demonstrate the
+AI-chat experience.
+
+🛠️ Technology Stack
+Layer	Technology
+Programming Language	Python
+Backend	Flask
+Database	SQLite
+Frontend	HTML5, CSS3, Vanilla JavaScript
+AI Provider	Google Gemini / OpenRouter
+Markdown	marked.js
+Code Highlighting	highlight.js
+Authentication	Flask sessions + Werkzeug
+HTTP Client	Requests
+Environment Configuration	python-dotenv
+Production Server	Gunicorn
+Streaming	Server-Sent Events + Fetch ReadableStream
+📁 Project Structure
+NexaMind/
+│
+├── app.py
+│   └── Flask application, routes, database,
+│       authentication, AI integration and streaming
+│
 ├── database/
-│   └── database.db          # Created automatically on first run
+│   └── database.db
+│       └── SQLite database
+│
+├── templates/
+│   ├── index.html
+│   └── login.html
+│
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   │
+│   ├── js/
+│   │   └── app.js
+│   │
+│   └── images/
+│       ├── logo.svg
+│       ├── logo-*.png
+│       └── favicon.ico
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── requirements.txt
+├── Procfile
+├── runtime.txt
 └── README.md
-```
+💻 Getting Started
+1. Clone the repository
+git clone <your-repository-url>
+cd NexaMind
+2. Create a virtual environment
+Windows PowerShell
+python -m venv .venv
 
-## Getting started
+Activate it:
 
-**1. Install dependencies**
+.venv\Scripts\Activate.ps1
 
-```bash
-cd nexamind
-python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+If PowerShell blocks activation:
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+
+Then:
+
+.venv\Scripts\Activate.ps1
+3. Install dependencies
 pip install -r requirements.txt
-```
+4. Configure environment variables
 
-**2. Configure your environment**
+Copy:
 
-```bash
-cp .env.example .env
-```
+.env.example
 
-Then open `.env` and fill in the values you want (see the table below). You can also
-run the app with **no AI key at all** — it falls back to a clearly labeled demo mode.
+to:
 
-**3. Run it**
+.env
 
-```bash
+Then configure your AI provider.
+
+Google Gemini
+AI_PROVIDER=gemini
+
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=your_gemini_model
+OpenRouter
+AI_PROVIDER=openrouter
+
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=your_openrouter_model
+
+You only need to configure the provider you want to use.
+
+🔐 Environment Variables
+Variable	Required	Description
+SECRET_KEY	Recommended	Flask session security key
+AI_PROVIDER	No	gemini or openrouter
+GEMINI_API_KEY	Gemini only	Google Gemini API key
+GEMINI_MODEL	No	Gemini model to use
+OPENROUTER_API_KEY	OpenRouter only	OpenRouter API key
+OPENROUTER_MODEL	No	OpenRouter model
+PORT	No	Server port
+FLASK_DEBUG	No	Flask development mode
+Example .env
+SECRET_KEY=replace-with-a-long-random-secret
+
+AI_PROVIDER=gemini
+
+GEMINI_API_KEY=your-api-key
+GEMINI_MODEL=your-model
+
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=your-model
+
+PORT=5000
+FLASK_DEBUG=true
+
+Never commit .env to GitHub.
+
+API keys and secret keys must remain private.
+
+▶️ Running NexaMind
+
+Start the Flask application:
+
 python app.py
-```
 
-Visit **http://localhost:5000**.
+You should see:
 
-## Environment variables
+* Running on http://127.0.0.1:5000
 
-All configuration lives in `.env` (never in code). Copy `.env.example` to `.env` and edit:
+Open:
 
-| Variable | Required? | Default | Description |
-|---|---|---|---|
-| `SECRET_KEY` | Recommended | dev placeholder | Flask session signing key. Set a real random string before deploying. |
-| `AI_PROVIDER` | No | `gemini` | Which backend to use: `gemini` or `openrouter`. |
-| `GEMINI_API_KEY` | Only if using Gemini | *(empty)* | From https://aistudio.google.com/app/apikey |
-| `GEMINI_MODEL` | No | `gemini-1.5-flash` | Any Gemini model name. |
-| `OPENROUTER_API_KEY` | Only if using OpenRouter | *(empty)* | From https://openrouter.ai/keys |
-| `OPENROUTER_MODEL` | No | `openai/gpt-4o-mini` | Any model slug OpenRouter supports. |
-| `PORT` | No | `5000` | Local server port. |
-| `FLASK_DEBUG` | No | `true` | Set `false` in production. |
+http://127.0.0.1:5000
+🔍 Verify AI Configuration
 
-> No key configured for the selected provider? NexaMind automatically serves a
-> clearly labeled **demo mode** reply instead of failing, so the app stays demoable.
+You can verify whether your environment variables are being loaded:
 
-## API reference
+python -c "from dotenv import load_dotenv; import os; load_dotenv(); print('Provider:', os.getenv('AI_PROVIDER')); print('Key found:', bool(os.getenv('GEMINI_API_KEY')))"
 
-All endpoints below require an authenticated session (except `/login` and `/api/health`).
+Expected output:
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/` | Main chat application |
-| `GET` / `POST` | `/login` | Login, register, or continue as guest |
-| `GET` | `/logout` | End the session |
-| `GET` | `/api/conversations` | List the user's conversations (`?q=` to search) |
-| `GET` | `/api/conversations/<id>/messages` | Get all messages in a conversation |
-| `DELETE` | `/api/conversations/<id>` | Delete a conversation |
-| `POST` | `/api/chat` | Send a message, get the full reply (non-streaming) |
-| `POST` | `/api/chat/stream` | Send a message, get the reply as an SSE stream |
-| `POST` | `/api/regenerate` | Regenerate the last AI reply (non-streaming) |
-| `POST` | `/api/regenerate/stream` | Regenerate the last AI reply as an SSE stream |
-| `GET` | `/api/health` | Server + AI-provider status check |
+Provider: gemini
+Key found: True
 
-`POST /api/chat` and `/api/chat/stream` accept:
-```json
-{ "message": "string, required", "conversation_id": "optional, omit to start a new one", "tool": "optional, e.g. \"code\"" }
-```
+You can also check the model loaded by the application:
 
-## How streaming works
+python -c "import app; print('Model:', app.GEMINI_MODEL)"
+🔌 API Reference
+Authentication
+Method	Endpoint	Description
+GET/POST	/login	Login, registration and guest access
+GET	/logout	Log out
+Conversations
+Method	Endpoint	Description
+GET	/api/conversations	List conversations
+GET	/api/conversations/<id>/messages	Get messages
+DELETE	/api/conversations/<id>	Delete conversation
 
-`/api/chat/stream` and `/api/regenerate/stream` push the AI's reply to the browser as
-**Server-Sent Events** (`event: meta`, `event: chunk`, `event: done`, `event: error`)
-instead of waiting for one final JSON response. The front end reads the response body
-with the Fetch API's `ReadableStream` — not `EventSource`, since that only supports
-GET requests — and appends each chunk to the message bubble as it arrives. The full
-reply is still saved to the database once the stream finishes, so history and search
-work exactly as with the non-streaming endpoints.
+Conversation search can be performed through:
 
-Demo mode streams too: it simulates typing by sending its placeholder reply one word
-at a time, so the UI behaves identically with or without a real API key.
+/api/conversations?q=search-term
+AI Chat
+Standard response
+POST /api/chat
 
-## Deploying NexaMind
+Example request:
 
-Ships with a `Procfile` and `runtime.txt` for platforms that auto-detect Python apps
-(**Render**, **Railway**, **Heroku**-style hosts):
+{
+  "message": "Explain Python lists",
+  "conversation_id": "optional-id",
+  "tool": "explain"
+}
+Streaming response
+POST /api/chat/stream
 
-1. Push the project to a Git repository.
-2. Create a new **Web Service** and point it at the repo.
-3. Set environment variables in the platform's dashboard — never commit `.env`.
-4. The platform runs the command in `Procfile`:
-   ```text
-   gunicorn app:app --bind 0.0.0.0:$PORT --worker-class gthread --workers 2 --threads 4 --timeout 120
-   ```
-   The `gthread` worker class is required so streaming (SSE) doesn't block other
-   requests — the default sync worker would.
+This endpoint returns an SSE stream containing incremental AI response chunks.
 
-**PythonAnywhere** (no `Procfile` support): create a web app, point its WSGI file's
-`application` import at `app:app`, and set the same environment variables from the
-"Web" tab.
+Regeneration
+POST /api/regenerate
 
-> **Database note:** SQLite is a single file. Free tiers on some hosts use an
-> ephemeral filesystem, so `database/database.db` — and everyone's history — resets on
-> every redeploy or restart. That's fine for a demo. For anything longer-lived, enable
-> a persistent disk or move to a managed Postgres database.
+and:
 
-## Security notes
+POST /api/regenerate/stream
 
-- API keys are read only from environment variables — never hard-coded.
-- Passwords are hashed with Werkzeug's `generate_password_hash` before storage.
-- `.env` and the SQLite database are excluded from version control via `.gitignore`.
-- The app warns on startup if it's still using a placeholder `SECRET_KEY`.
+These endpoints regenerate the most recent AI response.
 
-## Error handling
+Health Check
+GET /api/health
 
-Friendly, specific messages — never a raw Python traceback — for: missing API keys
-(→ demo mode), AI service timeouts, network failures, AI service errors, empty or
-over-length messages, invalid/expired conversations, and database errors.
+Useful for checking:
 
-## Design
+Server status
+Selected AI provider
+AI configuration status
+🗄️ Database
 
-A deep indigo-night interface with a signature violet → aurora-teal **"signal"**
-gradient, used for the brand mark, the thinking pulse, and primary actions — meant to
-evoke a signal moving through the product, deliberately distinct from the visual
-language of other AI assistants.
+NexaMind uses SQLite for local persistence.
 
-## Presentation notes
+The database is created automatically inside:
 
-- **Quick AI Tools** all call the same chat endpoint with a different `tool` value,
-  which maps to a specialized system prompt on the backend (`TOOL_PROMPTS` in
-  `app.py`) — one clean mechanism, seven behaviors.
-- **Demo mode** means you can present confidently with no internet access to an AI
-  provider at all.
-- The database schema (`users`, `conversations`, `messages`) is intentionally simple
-  and easy to sketch on a whiteboard.
-- **Streaming** is a good talking point on its own: it's implemented with native
-  Server-Sent Events and the Fetch `ReadableStream` API, no extra libraries required.
+database/database.db
 
-## Troubleshooting
+Main entities include:
 
-| Symptom | Likely cause / fix |
-|---|---|
-| "Running in demo mode" banner | No `GEMINI_API_KEY` / `OPENROUTER_API_KEY` set for the selected `AI_PROVIDER`. Add one to `.env` and restart. |
-| `ModuleNotFoundError` on launch | Activate your virtual environment and re-run `pip install -r requirements.txt`. |
-| Blank page / 500 error | Check the terminal running `python app.py` for the actual traceback — the browser only ever shows a friendly message. |
-| Streaming doesn't appear to stream (in production) | Confirm the host is running gunicorn with `--worker-class gthread`, matching the `Procfile`. |
-| Conversations disappear after redeploy | Expected on hosts with an ephemeral filesystem — see the deployment note above. |
-| "Incorrect username or password" on a fresh install | The database is per-deployment; guest accounts and registrations don't carry over between environments. |
+users
+conversations
+messages
+
+Relationship:
+
+User
+ │
+ └── Conversations
+       │
+       └── Messages
+             ├── User message
+             └── AI response
+
+SQLite keeps the project lightweight and easy to run locally.
+
+For a larger production application, SQLite can be replaced with PostgreSQL or
+another managed database.
+
+🛡️ Security
+
+NexaMind follows several basic security practices:
+
+API keys are loaded from environment variables.
+API keys are not hard-coded into the source code.
+.env is excluded from Git.
+Passwords are hashed using Werkzeug.
+Flask sessions use a configurable secret key.
+User conversations are isolated.
+Input validation is performed on API requests.
+AI API failures are handled gracefully.
+The application warns when a placeholder secret key is being used.
+Before deployment
+
+Replace:
+
+SECRET_KEY=change-this-to-a-long-random-string
+
+with a strong random value.
+
+⚠️ Error Handling
+
+NexaMind is designed to avoid exposing raw backend errors to users.
+
+It handles situations such as:
+
+Missing API key
+Invalid API key
+AI provider errors
+Network failures
+Request timeouts
+Invalid conversations
+Database errors
+Empty messages
+Messages exceeding the allowed length
+
+The frontend displays a user-friendly message instead of exposing a Python traceback.
+
+🚀 Deployment
+
+NexaMind includes deployment configuration for Python hosting platforms.
+
+The project contains:
+
+Procfile
+runtime.txt
+requirements.txt
+
+A production server can use Gunicorn.
+
+Example:
+
+gunicorn app:app
+
+For platforms that provide a $PORT environment variable:
+
+gunicorn app:app --bind 0.0.0.0:$PORT --worker-class gthread --workers 2 --threads 4 --timeout 120
+Important
+
+Set production environment variables through the hosting provider's environment
+configuration.
+
+Do not upload .env to your repository.
+
+💡 Design Philosophy
+
+NexaMind follows three main principles.
+
+1. Simple architecture
+
+The application intentionally uses:
+
+Flask + SQLite + Vanilla JavaScript
+
+instead of introducing unnecessary frameworks and build systems.
+
+2. Real product experience
+
+The goal is not just:
+
+Input → API → Output
+
+Instead:
+
+User
+ ↓
+Conversation
+ ↓
+Flask Backend
+ ↓
+AI Provider
+ ↓
+Streaming Response
+ ↓
+Markdown Renderer
+ ↓
+Persistent History
+3. Provider flexibility
+
+The AI layer is separated from the rest of the application.
+
+This allows NexaMind to work with different AI providers without redesigning
+the frontend or conversation system.
+
+🧩 Extending NexaMind
+
+The architecture makes it straightforward to add new capabilities.
+
+Possible future features:
+
+📎 File uploads
+🖼️ AI image generation
+🎤 Voice input
+🔊 Text-to-speech
+🔍 Web search
+📚 Document-based chat
+🧠 Retrieval-Augmented Generation (RAG)
+📊 AI data analysis
+👥 Shared conversations
+⭐ Favorite conversations
+📌 Message bookmarking
+🗃️ PostgreSQL support
+📱 Progressive Web App support
+🧪 Example Prompts
+
+Try NexaMind with prompts such as:
+
+Give me a creative idea for an AI project.
+Explain Python lists with bold text, bullets, and a code example.
+Debug this Python code and explain what is wrong.
+Create a study plan for learning data structures.
+Rewrite this paragraph in a professional tone.
+Generate a Flask API for a student management system.
+📸 Product Highlights
+
+NexaMind demonstrates:
+
+Modern UI
+    +
+AI Integration
+    +
+Streaming
+    +
+Authentication
+    +
+Database Persistence
+    +
+Markdown Rendering
+    +
+Developer Tools
+    +
+Responsive UX
+
+This makes it suitable as:
+
+🎓 College project
+💼 Portfolio project
+🏆 Hackathon project
+🧑‍💻 Full-stack development showcase
+🤖 AI application demonstration
+📊 Project Architecture
+                    ┌─────────────────────┐
+                    │       Browser       │
+                    │ HTML/CSS/JavaScript │
+                    └──────────┬──────────┘
+                               │
+                               │ HTTP / SSE
+                               ▼
+                    ┌─────────────────────┐
+                    │     Flask App       │
+                    │       app.py        │
+                    └──────┬───────┬──────┘
+                           │       │
+              ┌────────────┘       └─────────────┐
+              ▼                                  ▼
+      ┌────────────────┐                 ┌────────────────┐
+      │    SQLite      │                 │   AI Service   │
+      │    Database    │                 │                │
+      └────────────────┘                 └───────┬────────┘
+                                                 │
+                                      ┌──────────┴──────────┐
+                                      ▼                     ▼
+                                  Gemini               OpenRouter
+🏁 Project Status
+Current
+✅ AI chat
+✅ Gemini integration
+✅ OpenRouter integration
+✅ Streaming responses
+✅ Conversation history
+✅ SQLite persistence
+✅ Authentication
+✅ Guest mode
+✅ Quick AI tools
+✅ Markdown rendering
+✅ Code highlighting
+✅ Code copy
+✅ Regeneration
+✅ Conversation search
+✅ Dark mode
+✅ Responsive UI
+✅ Demo mode
+✅ Error handling
+Future
+⏳ File and document uploads
+⏳ Web search
+⏳ Voice interaction
+⏳ Image generation
+⏳ RAG/document chat
+⏳ PostgreSQL production database
+👨‍💻 Author
+<div align="center">
+Srikar Pandiri
+
+Computer Science Engineering Student | AI & Full-Stack Developer
+
+NexaMind was built as an original AI assistance project with the goal of combining
+AI integration, backend engineering, database design, real-time streaming, and
+modern user experience into one complete product.
+
+</div>
+📄 License
+
+This project is intended for educational, portfolio, and demonstration purposes.
+
+If you reuse or modify the project, please provide appropriate attribution.
+
+<div align="center">
+NexaMind
+
+Think smarter. Ask anything. Get more done.
+
+Built with Python + Flask + AI
+
+</div> ```
