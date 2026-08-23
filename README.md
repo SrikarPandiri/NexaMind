@@ -279,22 +279,43 @@ NexaMind was designed as a complete AI product rather than a basic Flask demo.
 The visual identity uses a violet → teal signal gradient to represent the flow of information between the user, NexaMind, and the AI model.
 
 ---
+## 🤖 AI Modes
 
-## 🧪 Demo Mode
+NexaMind supports both **Live AI Mode** and **Demo Mode**, making the application flexible for production use, demonstrations, and local development.
 
-NexaMind can run even when no AI API key is configured.
+### ⚡ Live AI Mode
 
-Instead of crashing, the application switches to a clearly labeled **NexaMind Demo Mode**.
+The deployed NexaMind application currently runs in **Live AI Mode**, using a configured AI API to generate real responses.
 
-This makes the project easier to demonstrate during:
+Live AI Mode provides:
 
-- College presentations
-- Hackathons
-- Portfolio reviews
-- Local development
-- UI demonstrations
+- 💬 Real AI-powered conversations
+- ⚡ Streaming responses
+- 🧠 Context-aware interactions
+- 🔍 Code debugging and explanations
+- 📚 Study and topic assistance
+- ✍️ Writing and summarization support
 
-Demo mode also simulates streaming so the frontend can still demonstrate the AI-chat experience.
+The interface clearly indicates the active mode with the **Live AI** label.
+
+### 🧪 Demo Mode
+
+NexaMind can also run without an AI API key.
+
+When no valid AI API configuration is available, the application automatically switches to a clearly labeled **NexaMind Demo Mode** instead of crashing.
+
+Demo Mode is useful for:
+
+- 🎓 College presentations
+- 🏆 Hackathons
+- 💼 Portfolio demonstrations
+- 🛠️ Local development
+- 🎨 UI/UX demonstrations
+
+Demo Mode simulates AI responses and streaming behavior so the complete chat interface can still be demonstrated without requiring a live AI API.
+
+> **Current deployment:** NexaMind is running in **Live AI Mode**.
+
 
 ---
 
