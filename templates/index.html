@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaMind — AI Assistant</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/logo.svg') }}">
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-mark small"><span class="brand-mark-core"></span></div>
+        <span class="brand-name">Nexa<b>Mind</b></span>
+      </div>
+      <button class="icon-btn" id="collapseSidebarBtn" title="Collapse sidebar" aria-label="Collapse sidebar">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M4 5h16v2H4zm0 6h16v2H4zm0 6h10v2H4z"/></svg>
+      </button>
+    </div>
+
+    <button class="new-chat-btn" id="newChatBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+      New conversation
+    </button>
+
+    <div class="sidebar-search">
+      <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14"/></svg>
+      <input type="text" id="searchInput" placeholder="Search conversations">
+    </div>
+
+    <nav class="conversation-list" id="conversationList" aria-label="Conversation history"></nav>
+
+    <div class="sidebar-tools">
+      <p class="sidebar-label">Quick tools</p>
+      <div class="tool-chip-row" id="sidebarTools">
+        <button class="tool-chip" data-tool="explain">🧭 Explain</button>
+        <button class="tool-chip" data-tool="summarize">🗒️ Summarize</button>
+        <button class="tool-chip" data-tool="rewrite">✍️ Rewrite</button>
+        <button class="tool-chip" data-tool="ideas">💡 Ideas</button>
+        <button class="tool-chip" data-tool="code">💻 Code</button>
+        <button class="tool-chip" data-tool="debug">🐞 Debug</button>
+        <button class="tool-chip" data-tool="study">📚 Study</button>
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <button class="icon-text-btn" id="themeToggleBtn">
+        <svg id="themeIcon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1"/></svg>
+        <span id="themeLabel">Light mode</span>
+      </button>
+      <div class="user-pill">
+        <span class="user-avatar">{{ username[:1]|upper if username else 'U' }}</span>
+        <span class="user-name">{{ username or 'User' }}</span>
+        <a href="{{ url_for('logout') }}" class="logout-link" title="Log out">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3H9c-1.1 0-2 .9-2 2v4h2V5h11v14H9v-4H7v4c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2"/></svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <button class="mobile-sidebar-toggle" id="mobileSidebarToggle" aria-label="Open sidebar">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 5h16v2H4zm0 6h16v2H4zm0 6h16v2H4z"/></svg>
+  </button>
+  <div class="sidebar-scrim" id="sidebarScrim"></div>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main-panel">
+
+    <header class="chat-header">
+      <div class="chat-header-title">
+        <span class="pulse-dot"></span>
+        <h2 id="conversationTitle">New conversation</h2>
+      </div>
+      <div class="chat-header-actions">
+        <button class="icon-btn" id="exportBtn" title="Export conversation" aria-label="Export conversation">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M5 20h14v-2H5zM12 2 6 8h3.5v6h5V8H18z"/></svg>
+        </button>
+        <button class="icon-btn" id="clearBtn" title="Clear conversation" aria-label="Clear conversation">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Welcome / empty state -->
+    <section class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-inner">
+        <div class="welcome-orb"></div>
+        <h1>What can I help you build today?</h1>
+        <p class="welcome-sub">Ask a question, paste some code, or pick a starting point below.</p>
+
+        <div class="suggestion-grid">
+          <button class="suggestion-card" data-tool="ideas" data-prompt="Give me a creative idea for ">
+            <span class="suggestion-icon">💡</span>
+            <span class="suggestion-text">Generate an idea</span>
+          </button>
+          <button class="suggestion-card" data-tool="code" data-prompt="Help me write code that ">
+            <span class="suggestion-icon">💻</span>
+            <span class="suggestion-text">Help me code</span>
+          </button>
+          <button class="suggestion-card" data-tool="explain" data-prompt="Explain this topic simply: ">
+            <span class="suggestion-icon">📚</span>
+            <span class="suggestion-text">Explain a topic</span>
+          </button>
+          <button class="suggestion-card" data-tool="rewrite" data-prompt="Improve the writing of this text: ">
+            <span class="suggestion-icon">✍️</span>
+            <span class="suggestion-text">Improve my writing</span>
+          </button>
+          <button class="suggestion-card" data-tool="debug" data-prompt="Debug this code and explain the fix: ">
+            <span class="suggestion-icon">🔍</span>
+            <span class="suggestion-text">Debug code</span>
+          </button>
+          <button class="suggestion-card" data-tool="summarize" data-prompt="Summarize this clearly: ">
+            <span class="suggestion-icon">🗒️</span>
+            <span class="suggestion-text">Summarize</span>
+          </button>
+          <button class="suggestion-card" data-tool="study" data-prompt="Help me study this topic: ">
+            <span class="suggestion-icon">📖</span>
+            <span class="suggestion-text">Study</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Message stream -->
+    <section class="chat-stream" id="chatStream" hidden></section>
+
+    <!-- Composer -->
+    <footer class="composer">
+      <div class="active-tool-banner" id="activeToolBanner" hidden>
+        <span id="activeToolLabel"></span>
+        <button id="clearToolBtn" aria-label="Clear tool">✕</button>
+      </div>
+      <div class="composer-box">
+        <textarea id="messageInput" placeholder="Ask NexaMind anything..." rows="1" maxlength="8000"></textarea>
+        <div class="composer-actions">
+          <span class="char-counter" id="charCounter">0 / 8000</span>
+          <button class="send-btn" id="sendBtn" aria-label="Send message">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="composer-hint">Enter to send &middot; Shift+Enter for a new line &middot; NexaMind can make mistakes, so double-check important info.</p>
+    </footer>
+  </main>
+</div>
+
+<template id="messageTemplate">
+  <div class="message">
+    <div class="message-avatar"></div>
+    <div class="message-body">
+      <div class="message-meta">
+        <span class="message-sender"></span>
+        <span class="message-time"></span>
+      </div>
+      <div class="message-content"></div>
+      <div class="message-actions">
+        <button class="msg-action-btn copy-btn" title="Copy response" aria-label="Copy response">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2m0 16H8V7h11z"/></svg>
+        </button>
+        <button class="msg-action-btn regen-btn" title="Regenerate response" aria-label="Regenerate response" hidden>
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08a5.99 5.99 0 0 1-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L14 11h7V4z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

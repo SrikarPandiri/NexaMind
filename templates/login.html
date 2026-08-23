@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaMind — Think smarter. Ask anything.</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/logo.svg') }}">
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-body">
+  <div class="auth-orb orb-a"></div>
+  <div class="auth-orb orb-b"></div>
+
+  <main class="auth-shell">
+    <div class="auth-brand">
+      <div class="brand-mark">
+        <span class="brand-mark-core"></span>
+      </div>
+      <h1>Nexa<span>Mind</span></h1>
+      <p class="tagline">Think smarter. Ask anything. Get more done.</p>
+
+      <ul class="auth-points">
+        <li>Multi-turn AI conversations that remember context</li>
+        <li>Quick tools for explaining, coding, writing &amp; studying</li>
+        <li>Your conversation history, searchable and organized</li>
+      </ul>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab is-active" data-tab="login" type="button">Log in</button>
+        <button class="auth-tab" data-tab="register" type="button">Create account</button>
+      </div>
+
+      {% if error %}
+      <div class="auth-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="authForm">
+        <input type="hidden" name="action" id="authAction" value="login">
+        <label>
+          <span>Username</span>
+          <input type="text" name="username" placeholder="e.g. ada_lovelace" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn-primary" id="authSubmit">Log in</button>
+      </form>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <form method="POST" action="{{ url_for('login') }}">
+        <input type="hidden" name="action" value="guest">
+        <button type="submit" class="btn-ghost">Continue as guest</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll('.auth-tab');
+    const action = document.getElementById('authAction');
+    const submit = document.getElementById('authSubmit');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        const mode = tab.dataset.tab;
+        action.value = mode;
+        submit.textContent = mode === 'login' ? 'Log in' : 'Create account';
+      });
+    });
+  </script>
+</body>
+</html>

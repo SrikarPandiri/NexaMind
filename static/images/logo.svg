@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="nexamind-signal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C6FF0"/>
+      <stop offset="100%" stop-color="#4FD6C0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#nexamind-signal)"/>
+  <circle cx="32" cy="32" r="10" fill="#FFFFFF" fill-opacity="0.95"/>
+  <circle cx="32" cy="32" r="16" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="2"/>
+</svg>
